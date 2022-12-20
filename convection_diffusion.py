@@ -4,17 +4,17 @@ import numpy as np
 import scipy.linalg
 from matplotlib import cm
 
-from util import RMS_norm
+from util import RMS_norm, get_Sdx, get_Tdx, get_trap
 
 x0 = 0
 x1 = 1
-N = 90  # amount of grid points on x between 0 and 1
+N = 900  # amount of grid points on x between 0 and 1
 dx = (x1 - x0) / N
 x_grid = np.linspace(x0, x1, N + 1)
 print(dx, x_grid[1] - x_grid[0])
 t0 = 0
-t1 = 5
-M = 500
+t1 = 10
+M = 5000
 t_grid = np.linspace(t0, t1, M + 1)
 dt = (t1 - t0) / M
 
@@ -26,27 +26,22 @@ f = (
 )
 
 a = 1
+d = 0.1
+Pe = abs(a / d)
+# High Pe -> Convection dominated, and so on and so on.
 mu = dt / dx
-print(f"CFL {a * mu}")
+print(f"Peclet number {Pe}")
 
-
-def get_circer(a, dt, dx, N):
-    xi = a * dt / dx
-    col = np.zeros(N)
-    col[0] = 1 - xi * xi
-    col[1] = xi / 2 * (1 + xi)
-
-    col[-1] = -xi / 2 * (1 - xi)
-    return scipy.linalg.circulant(col)
-
+print(get_Sdx(1, N))
+print(get_Tdx(1, N))
+A = get_trap(d * get_Tdx(dx, N) - a * get_Sdx(dx, N), dt)
 
 uold = [g(x) for x in x_grid[:-1]]
-circ = get_circer(a, dx, N)
 u = [uold + [uold[0]]]
 uold = np.array(uold)
 
 for i, t in enumerate(t_grid[1:]):
-    u_new = np.dot(circ, uold)
+    u_new = np.dot(A, uold)
     u.append(np.concatenate((u_new, [u_new[0]])))
     uold = u_new
 u = np.array(u)
